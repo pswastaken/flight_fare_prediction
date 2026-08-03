@@ -80,8 +80,8 @@ stre.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-stre.markdown('<h1 class="hero-title">Flight Fare Predictor</h1>', unsafe_allow_html=True)
-stre.markdown('<p class="hero-subtitle">Enter you travel details below to get a price prediction of your flight.</p>', unsafe_allow_html=True)
+stre.markdown('<h1 class="hero_title">Flight Fare Predictor</h1>', unsafe_allow_html=True)
+stre.markdown('<p class="hero_subtitle">Enter you travel details below to get a price prediction of your flight.</p>', unsafe_allow_html=True)
 
 API_KEY = os.environ.get("GEMINI_KEY")
 stre.markdown("---")
@@ -108,13 +108,19 @@ with column1:
     if flight_type == "Domestic (India)":
         source_city = stre.selectbox("From", domestic_cities)
         destination_city = stre.selectbox("To", domestic_cities, index= min(1, len(domestic_cities)- 1))
-        selected_airline = stre.selectbox("Preferred Airline", domestic_airlines)
+        selected_airline = domestic_airlines
     else:
         source_city = stre.selectbox("From", international_cities)
         destination_city = stre.selectbox("To", international_cities)
-        selected_airline = stre.selectbox("Preferred Airline", international_airlines)
+        selected_airline = international_airlines
+    compare_flights = stre.checkbox("Compare two airlines?")
+    if compare_flights:
+        airline1 = stre.selectbox("Airline 1", selected_airline, index=0)
+        airline2 = stre.selectbox("Airline 2", selected_airline, index=1)
+    else:
+        airline1 = stre.selectbox("Preferred Airline", selected_airline, index=0)
+        airline2 = None
     travel_class = stre.selectbox("Cabin Class", ['Economy', 'Premium Economy', 'Business', 'First Class'])
-
 with column2:
     today = date.today()
     flight_date = stre.date_input("Flight Date", min_value=today, value=today)
@@ -148,7 +154,7 @@ if stre.button("Predict Fare"):
             opacity:1;
         }
         100% {
-        left:110vh;
+        left:110vw;
         bottom:110vh;
         opacity:0;
         }
@@ -180,19 +186,34 @@ if stre.button("Predict Fare"):
                     trip_details = f"a ROUND-TRIP {travel_class} class flight from {source_city} to {destination_city} and back. The outbound flight is on {formatted_date} ({days_left} days from today) at {formatted_time}, and the return flight is on {formatted_return_date} ({return_days} days after departure)."
                 else:
                     trip_details = f"a one-way {travel_class} class flight from {source_city} to {destination_city}. The flight is on {formatted_date} ({days_left} days from today) at {formatted_time}."
-                prompt = f"""
-                You are an expert global travel agent. Estimate the current average price in INR (₹) for {trip_details}
-                Flight Details:
-                - Preferred Airline: {selected_airline}
-                Consider airline tier (budget vs premium), time of departure, seasonality, and advance booking window. If the preferred airline does not directly fly this specific route, mention the most common operating carriers.
-                CRITICAL INSTRUCTION: If the selected airline does NOT offer the requested Cabin Class(e.g., Indigo or SpiceJet usually do not have business class or first class), set the Estimated Range to "N/A" and explain this limitation in the explaination.
-                Respond ONLY in this format:
-                **Estimated Range:** ₹X,XXX - ₹Y,YYY
 
-                **Explaination:** [1-2 sentences explaining the price based on airline choice, date and route]
-                """
+                if compare_flights:
+                    prompt = f"""
+                    You are an expert global travel agent. Estimate the current average price in INR (₹) for {trip_details}
+                    Airlines to compare:
+                    1. {airline1}
+                    2. {airline2}
+                    Consider airline tier (budget vs premium), time of departure, seasonality, and advance booking window. If the preferred airline does not directly fly this specific route, mention the most common operating carriers.
+                    CRITICAL INSTRUCTION: If the selected airline does NOT offer the requested Cabin Class(e.g., Indigo or SpiceJet usually do not have business class or first class), set the Estimated Range to "N/A" and explain this limitation in the explaination.
+                    Respond ONLY in this format:
+                    **{airline1} Estimated Range:** ₹X,XXX - ₹Y,YYY (or N/A)
+                    **{airline2} Estimated Range:** ₹X,XXX - ₹Y,YYY (or N/A)
+                    
+                    **Explaination:** [2-3 sentences comparing the price based on airline tier, date and route]
+                    """
+                else:
+                    prompt = f"""
+                    You are an expert global travel agent. Estimate the current average price in INR (₹) for {trip_details}
+                    Flight Details:
+                    - Preferred Airline: {airline1}
+                    Consider airline tier (budget vs premium), time of departure, seasonality, and advance booking window. If the preferred airline does not directly fly this specific route, mention the most common operating carriers.
+                    CRITICAL INSTRUCTION: If the selected airline does NOT offer the requested Cabin Class(e.g., Indigo or SpiceJet usually do not have business class or first class), set the Estimated Range to "N/A" and explain this limitation in the explaination.
+                    Respond ONLY in this format:
+                    **Estimated Range:** ₹X,XXX - ₹Y,YYY
+
+                    **Explaination:** [1-2 sentences explaining the price based on airline choice, date and route]
+                    """
                 response = model.generate_content(prompt)
                 stre.success(response.text)
-
             except Exception as e:
                 stre.error(f"An error occured: {e}")
