@@ -180,7 +180,7 @@ if stre.button("Predict Fare"):
         with stre.spinner("Analyzing flight price data..."):
             try:
                 gemini.configure(api_key=API_KEY)
-                model = gemini.GenerativeModel('gemini-2.0-flash')
+                model = gemini.GenerativeModel('gemini-3.6-flash')
 
                 if trip_type == "Round-Trip":
                     trip_details = f"a ROUND-TRIP {travel_class} class flight from {source_city} to {destination_city} and back. The outbound flight is on {formatted_date} ({days_left} days from today) at {formatted_time}, and the return flight is on {formatted_return_date} ({return_days} days after departure)."
